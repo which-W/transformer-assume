@@ -13,7 +13,8 @@ def translate(transformer,de_sentence):
     enc_x_batch=torch.tensor([de_ids],dtype=torch.long).to(DEVICE)      # 准备encoder输入
     encoder_z=transformer.encode(enc_x_batch)    # encoder编码
 
-    # Decoder阶段
+     # Decoder阶段
+    transformer.decoder.open_kvcache() # 开启KV Cache
     en_token_ids=[BOS_IDX] # 翻译结果
     while len(en_token_ids)<SEQ_MAX_LEN:
         dec_x_batch=torch.tensor([en_token_ids],dtype=torch.long).to(DEVICE)  # 准备decoder输入
@@ -24,7 +25,7 @@ def translate(transformer,de_sentence):
 
         if next_token_id==EOS_IDX:  # 结束符
             break
-
+    transformer.decoder.close_kvcache() # 清理KV Cache
     # 生成翻译结果
     en_token_ids=[id for id in en_token_ids if id not in [BOS_IDX,EOS_IDX,UNK_IDX,PAD_IDX]] # 忽略特殊字符
     en_tokens=en_vocab.lookup_tokens(en_token_ids)    # 词id序列转token序列

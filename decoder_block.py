@@ -31,6 +31,16 @@ class DecoderBlock(nn.Module):
         )
         self.addnorm3=nn.LayerNorm(emb_size)
 
+      # 打开kvcache推理优化
+    def open_kvcache(self):
+        self.first_multihead_attn.set_kvcache(kv_cache_type='selfattn')
+        self.second_multihead_attn.set_kvcache(kv_cache_type='crossattn')
+        
+    # 关闭kvcache推理优化
+    def close_kvcache(self):
+        self.first_multihead_attn.set_kvcache(kv_cache_type='')
+        self.second_multihead_attn.set_kvcache(kv_cache_type='')
+        
     def forward(self,x,encoder_z,first_attn_mask,second_attn_mask): # x: (batch_size,seq_len,emb_size)
         # 第1个多头
         z=self.first_multihead_attn(x,x,first_attn_mask)  # z: (batch_size,seq_len,head*v_size) , first_attn_mask用于遮盖decoder序列的pad部分,以及避免decoder Q到每个词后面的词
