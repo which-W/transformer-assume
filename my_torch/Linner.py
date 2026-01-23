@@ -21,7 +21,7 @@ class CustomLinear(nn.Module):
         self.reset_parameters(in_features , out_features)
     
     def reset_parameters(self,in_features,out_features):
-        # 权重使用截断正态分布初始化
+        # 权重使用截断正态分布初始化,std的设置为了防止方差抖动太大或直接为0
         std = (2 / (in_features * out_features)) ** 0.5
         trunc_normal_(self.weight,mean=0.0, std=std , a=std*(-3) , b=std*(3))
         

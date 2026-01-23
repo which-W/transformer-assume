@@ -17,25 +17,34 @@
 
 ```
 transformer-assume/
-├── config.py                 # 配置文件，包含序列最大长度和设备设置
-├── dataset.py                # 数据集处理和预处理
-├── train.py                  # 训练脚本，用于训练德语到英语翻译模型
-├── evaluation.py             # 评估脚本，用于测试模型性能
-├── transformer.py            # 主Transformer模型类
-├── encoder.py                # 编码器实现
-├── decoder.py                # 解码器实现
-├── encoder_block.py          # 编码器块
-├── decoder_block.py          # 解码器块
-├── multihead_attn.py         # 多头注意力机制
-├── emb.py                    # 嵌入层实现
-├── emb_2.py                  # 嵌入层的另一种实现
-├── Linner.py                 # 线性层相关代码
+├── py_files/                 # Python 脚本文件夹
+│   ├── config.py             # 配置文件，包含序列最大长度和设备设置
+│   ├── dataset.py            # 数据集处理和预处理
+│   ├── train.py              # 训练脚本，用于训练德语到英语翻译模型
+│   ├── evaluation.py         # 评估脚本，用于测试模型性能
+│   ├── transformer.py        # 主Transformer模型类
+│   ├── encoder.py            # 编码器实现
+│   ├── decoder.py            # 解码器实现
+│   ├── encoder_block.py      # 编码器块
+│   ├── decoder_block.py      # 解码器块
+│   ├── multihead_attn.py     # 多头注意力机制
+│   ├── emb.py                # 嵌入层实现
+│   ├── emb_2.py              # 嵌入层的另一种实现
+│   └── Linner.py             # 线性层相关代码
+├── notebook_files/           # Jupyter notebooks文件夹
+│   ├── embeding.ipynb        # 嵌入层演示
+│   ├── multihead_atten.ipynb # 多头注意力机制演示
+│   ├── Encoder.ipynb         # 编码器演示
+│   ├── Decoder.ipynb         # 解码器演示
+│   ├── transformer.ipynb     # 完整Transformer模型演示
+│   ├── train.ipynb           # 训练过程演示
+│   ├── evaluation.ipynb      # 评估过程演示
+│   └── ...                   # 其他notebook文件
 ├── checkpoints/              # 模型检查点
 │   └── model.pth            # 保存的模型权重
 ├── multi30k/                 # 数据集文件夹 (Multi30k数据集)
 │   ├── train.1.de           # 德语训练数据
 │   └── train.1.en           # 英语训练数据
-├── *.ipynb                   # Jupyter notebooks用于演示和测试
 ├── __pycache__/             # Python缓存文件
 ├── .ipynb_checkpoints/      # Jupyter notebook检查点
 ├── .gitignore               # Git忽略文件
@@ -46,32 +55,32 @@ transformer-assume/
 ## 主要文件说明
 
 ### 核心模型文件
-- **transformer.py**: 主Transformer模型，包含编码器和解码器
-- **encoder.py**: Transformer编码器实现
-- **decoder.py**: Transformer解码器实现
-- **multihead_attn.py**: 多头注意力机制的实现
-- **emb.py**: 词嵌入和位置编码的实现
+- **py_files/transformer.py**: 主Transformer模型，包含编码器和解码器
+- **py_files/encoder.py**: Transformer编码器实现
+- **py_files/decoder.py**: Transformer解码器实现
+- **py_files/multihead_attn.py**: 多头注意力机制的实现
+- **py_files/emb.py**: 词嵌入和位置编码的实现
 
 ### 数据处理
-- **dataset.py**: 数据集加载、词汇表构建、分词预处理
+- **py_files/dataset.py**: 数据集加载、词汇表构建、分词预处理
 - **multi30k/**: Multi30k数据集，用于德语-英语翻译任务
 
 ### 训练和评估
-- **train.py**: 模型训练脚本，使用SGD优化器训练翻译模型
-- **evaluation.py**: 模型评估脚本
+- **py_files/train.py**: 模型训练脚本，使用SGD优化器训练翻译模型
+- **py_files/evaluation.py**: 模型评估脚本
 
 ### 配置
-- **config.py**: 项目配置，包括最大序列长度和计算设备设置
+- **py_files/config.py**: 项目配置，包括最大序列长度和计算设备设置
 
 ### Jupyter Notebooks
 项目包含多个Jupyter notebooks，用于逐步演示各个组件：
-- **embeding.ipynb**: 嵌入层演示
-- **multihead_atten.ipynb**: 多头注意力机制演示
-- **Encoder.ipynb**: 编码器演示
-- **Decoder.ipynb**: 解码器演示
-- **transformer.ipynb**: 完整Transformer模型演示
-- **train.ipynb**: 训练过程演示
-- **evaluation.ipynb**: 评估过程演示
+- **notebook_files/embeding.ipynb**: 嵌入层演示
+- **notebook_files/multihead_atten.ipynb**: 多头注意力机制演示
+- **notebook_files/Encoder.ipynb**: 编码器演示
+- **notebook_files/Decoder.ipynb**: 解码器演示
+- **notebook_files/transformer.ipynb**: 完整Transformer模型演示
+- **notebook_files/train.ipynb**: 训练过程演示
+- **notebook_files/evaluation.ipynb**: 评估过程演示
 
 ## 如何运行
 
@@ -89,13 +98,13 @@ transformer-assume/
 ### 训练模型
 运行训练脚本：
 ```bash
-python train.py
+python py_files/train.py
 ```
 
 ### 测试模型
 运行评估脚本：
 ```bash
-python evaluation.py
+python py_files/evaluation.py
 ```
 
 ### Jupyter Notebook演示
