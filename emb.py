@@ -5,7 +5,7 @@ from torch import nn
 import torch 
 from dataset import de_vocab,de_preprocess,train_dataset
 import math 
-
+#使用nn的embedding实现
 class EmbeddingWithPosition(nn.Module):
     def __init__(self,vocab_size,emb_size,dropout=0.1,seq_max_len=5000):
         super().__init__()
@@ -29,7 +29,7 @@ class EmbeddingWithPosition(nn.Module):
     #前向预测
     def forward(self,x):    # x: (batch_size,seq_len)
         x=self.seq_emb(x)   # x: (batch_size,seq_len,emb_size)
-        x=x+self.pos_encoding.unsqueeze(0)[:,:x.size()[1],:] # x: (batch_size,seq_len,emb_size)
+        x=x+self.pos_encoding.unsqueeze(0)[:,:x.size()[1],:] # x: (batch_size,seq_len,emb_size)这里的pos_encoding:(max_seq_size,emb_size)
         return self.dropout(x)
 
 if __name__=='__main__':

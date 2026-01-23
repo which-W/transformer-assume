@@ -15,7 +15,7 @@ class MultiHeadAttention(nn.Module):
         self.v_size=v_size
         self.head=head
 
-        self.w_q=nn.Linear(emb_size,head*q_k_size) # 多头
+        self.w_q=nn.Linear(emb_size,head*q_k_size) # 多头，q_k_size表示的是向量维度
         self.w_k=nn.Linear(emb_size,head*q_k_size)
         self.w_v=nn.Linear(emb_size,head*v_size)
 
@@ -64,7 +64,7 @@ class MultiHeadAttention(nn.Module):
             k=self.w_k(x_k_v) # k: (batch_size,seq_len,head*q_k_size)
             v=self.w_v(x_k_v) # v: (batch_size,seq_len,head*v_size)
         
-        # 多头兼容
+        # 多头兼容，把head放到第二个维度，不然难以乘出seq_size*seq_size的矩阵
         q=q.view(q.size()[0],q.size()[1],self.head,self.q_k_size).transpose(1,2) # q: (batch_size,head,seq_len,q_k_size)
         k=k.view(k.size()[0],k.size()[1],self.head,self.q_k_size).transpose(1,2).transpose(2,3) # k:(batch_size,head,q_k_size,seq_len)
 

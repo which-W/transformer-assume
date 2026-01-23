@@ -82,7 +82,7 @@ for de, en in train_dataset:
     de_tokens.append(de_tokenizer(de))
     en_tokens.append(en_tokenizer(en))
 
-# ====== vocab（接口与原来一致） ======
+# ====== vocab ======
 de_vocab = build_vocab_from_iterator_compat(
     de_tokens,
     specials=[UNK_SYM, PAD_SYM, BOS_SYM, EOS_SYM],
