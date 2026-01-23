@@ -47,7 +47,7 @@ class CauseMutiHeadAttention(nn.Module):
         self.q_pro = nn.Linear(d_model , d_model ,**factory_par)
         self.k_pro = nn.Linear(d_model , d_model ,**factory_par)
         self.v_pro = nn.Linear(d_model , d_model ,**factory_par)
-        
+        #输出投影层 整合所有信息
         self.output_pro = nn.Linear(d_model , d_model ,**factory_par)
         
         if theta is not None and max_seq_size is not None:

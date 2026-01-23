@@ -8,7 +8,7 @@ class CustomEmbedding(nn.Module):
         super().__init__()
         # 创建参数矩阵,
         factory_para = {"device" : device,"dtype" : dtype}
-        self.weight = nn.Parameter(torch.empty(vocab_size, embedding_dim),**factory_para)
+        self.weight = nn.Parameter(torch.empty(vocab_size, embedding_dim,**factory_para))
         # 使用截断正态分布初始化
         trunc_normal_(self.weight, mean =0.0 ,std=1 , a = -3 , b = 3 ) #[-3,3]的范围防止产生过大的数
     
