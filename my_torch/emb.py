@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from torch.nn.init import trunc_normal_
 
-#使用nn.Parameter手动实现
+
 class CustomEmbedding(nn.Module):
     def __init__(self, vocab_size:int, embedding_dim:int,device=None,dtype=None):
         super().__init__()
