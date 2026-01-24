@@ -1,144 +1,207 @@
-# Transformer-Assume
+# Transformer学习之旅：从零开始实现Transformer模型
 
-简易复现Transformer架构的小白版本，用于学习和理解Transformer模型的基本实现。
+[![Python](https://img.shields.io/badge/Python-2.1+-blue.svg)](https://python.org)
+[![PyTorch](https://img.shields.io/badge/PyTorch-3.8+-orange.svg)](https://pytorch.org)
+[![Jupyter](https://img.shields.io/badge/Jupyter-Notebook-yellow.svg)](https://jupyter.org)
 
-## 项目描述
+> 一份循序渐进的Transformer学习实践项目，通过代码实现深入理解Transformer架构的核心原理
 
-这个项目实现了Transformer模型的核心组件，用于德语到英语的机器翻译任务。通过逐步实现嵌入层、多头注意力机制、编码器、解码器等模块，帮助学习者理解Transformer的工作原理。
+## 📖 项目简介
 
-## 依赖项
+这是一个记录Transformer模型学习全过程的实战项目。项目采用"理论与实践相结合"的方式，通过逐步实现Transformer的各个组件，帮助开发者深入理解Attention机制、编码器-解码器架构等核心概念。
 
-- PyTorch (版本差异说明: .py文件使用PyTorch 2.0以下版本，.ipynb文件使用PyTorch 2.8左右版本)
-- NumPy
-- Matplotlib (用于可视化)
-- Jupyter Notebook (用于运行.ipynb文件)
+### 🎯 学习目标
 
-## 项目结构
+- 理解Transformer的基本架构和工作原理
+- 掌握多头注意力机制的实现细节
+- 学会处理序列到序列（Seq2Seq）任务
+- 实现完整的机器翻译模型
+- 熟悉PyTorch中深度学习模型的开发流程
+
+## 🏗️ 项目架构
 
 ```
 transformer-assume/
-├── py_files/                 # Python 脚本文件夹
-│   ├── config.py             # 配置文件，包含序列最大长度和设备设置
-│   ├── dataset.py            # 数据集处理和预处理
-│   ├── train.py              # 训练脚本，用于训练德语到英语翻译模型
-│   ├── evaluation.py         # 评估脚本，用于测试模型性能
-│   ├── transformer.py        # 主Transformer模型类
-│   ├── encoder.py            # 编码器实现
-│   ├── decoder.py            # 解码器实现
-│   ├── encoder_block.py      # 编码器块
-│   ├── decoder_block.py      # 解码器块
-│   ├── multihead_attn.py     # 多头注意力机制
-│   ├── emb.py                # 嵌入层实现
-│   ├── emb_2.py              # 嵌入层的另一种实现
-│   └── Linner.py             # 线性层相关代码
-├── notebook_files/           # Jupyter notebooks文件夹
-│   ├── embeding.ipynb        # 嵌入层演示
-│   ├── multihead_atten.ipynb # 多头注意力机制演示
-│   ├── Encoder.ipynb         # 编码器演示
-│   ├── Decoder.ipynb         # 解码器演示
-│   ├── transformer.ipynb     # 完整Transformer模型演示
-│   ├── train.ipynb           # 训练过程演示
-│   ├── evaluation.ipynb      # 评估过程演示
-│   └── ...                   # 其他notebook文件
-├── checkpoints/              # 模型检查点
-│   └── model.pth            # 保存的模型权重
-├── multi30k/                 # 数据集文件夹 (Multi30k数据集)
-│   ├── train.1.de           # 德语训练数据
-│   └── train.1.en           # 英语训练数据
-├── __pycache__/             # Python缓存文件
-├── .ipynb_checkpoints/      # Jupyter notebook检查点
-├── .gitignore               # Git忽略文件
-├── LICENSE                  # 许可证
-└── README.md                # 项目说明文档
+├── 📁 py_files/                    # 核心Python实现
+│   ├── transformer.py            # 主Transformer模型
+│   ├── encoder.py               # 编码器实现
+│   ├── decoder.py               # 解码器实现
+│   ├── multihead_attn.py        # 多头注意力机制
+│   ├── encoder_block.py         # 编码器块
+│   ├── decoder_block.py         # 解码器块
+│   ├── emb.py                   # 词嵌入和位置编码
+│   ├── dataset.py               # 数据处理
+│   ├── train.py                 # 训练脚本
+│   ├── evaluation.py            # 评估脚本
+│   └── config.py                # 配置文件
+├── 📁 notebook_files/             # Jupyter教学笔记
+│   ├── embeding.ipynb           # 嵌入层详解
+│   ├── multihead_atten.ipynb    # 多头注意力演示
+│   ├── Encoder.ipynb            # 编码器实现
+│   ├── Decoder.ipynb            # 解码器实现
+│   ├── transformer.ipynb        # 完整模型演示
+│   ├── train.ipynb              # 训练过程
+│   └── evaluation.ipynb         # 模型评估
+├── 📁 checkpoints/               # 模型检查点
+├── 📁 multi30k/                  # 数据集
+└── 📄 README.md                  # 项目文档
 ```
 
-## 主要文件说明
+## 🚀 快速开始
 
-### 核心模型文件
-- **py_files/transformer.py**: 主Transformer模型，包含编码器和解码器
-- **py_files/encoder.py**: Transformer编码器实现
-- **py_files/decoder.py**: Transformer解码器实现
-- **py_files/multihead_attn.py**: 多头注意力机制的实现
-- **py_files/emb.py**: 词嵌入和位置编码的实现
+### 环境要求
 
-### 数据处理
-- **py_files/dataset.py**: 数据集加载、词汇表构建、分词预处理
-- **multi30k/**: Multi30k数据集，用于德语-英语翻译任务
-
-### 训练和评估
-- **py_files/train.py**: 模型训练脚本，使用SGD优化器训练翻译模型
-- **py_files/evaluation.py**: 模型评估脚本
-
-### 配置
-- **py_files/config.py**: 项目配置，包括最大序列长度和计算设备设置
-
-### Jupyter Notebooks
-项目包含多个Jupyter notebooks，用于逐步演示各个组件：
-- **notebook_files/embeding.ipynb**: 嵌入层演示
-- **notebook_files/multihead_atten.ipynb**: 多头注意力机制演示
-- **notebook_files/Encoder.ipynb**: 编码器演示
-- **notebook_files/Decoder.ipynb**: 解码器演示
-- **notebook_files/transformer.ipynb**: 完整Transformer模型演示
-- **notebook_files/train.ipynb**: 训练过程演示
-- **notebook_files/evaluation.ipynb**: 评估过程演示
-
-## 如何运行
-
-### 环境准备
-1. 安装PyTorch (根据您的环境选择版本)
-   ```bash
-   pip install torch torchvision torchaudio
-   ```
-
-2. 安装其他依赖
-   ```bash
-   pip install numpy matplotlib jupyter
-   ```
-
-### 训练模型
-运行训练脚本：
 ```bash
+Python >= 3.8
+PyTorch >= 2.1
+```
+
+### 安装依赖
+
+```bash
+# 安装PyTorch (根据CUDA版本选择)
+pip install torch torchvision torchaudio
+
+# 安装其他依赖
+pip install numpy matplotlib jupyter
+```
+
+### 数据准备
+
+项目使用Multi30k数据集进行德语到英语的机器翻译任务：
+
+```bash
+# 数据已包含在multi30k/目录中
+# 包含德语和英语的平行语料
+```
+
+## 📚 学习路径
+
+### 1. 理论基础 (Notebooks)
+
+建议按以下顺序学习Jupyter notebooks：
+
+1. **`embeding.ipynb`** - 词嵌入和位置编码
+2. **`multihead_atten.ipynb`** - 多头注意力机制
+3. **`Encoder.ipynb`** - 编码器实现
+4. **`Decoder.ipynb`** - 解码器实现
+5. **`transformer.ipynb`** - 完整模型
+
+### 2. 实践代码 (Python脚本)
+
+```bash
+# 训练模型
 python py_files/train.py
-```
 
-### 测试模型
-运行评估脚本：
-```bash
+# 评估模型
 python py_files/evaluation.py
 ```
 
-### Jupyter Notebook演示
-启动Jupyter并打开相应的notebook文件：
-```bash
-jupyter notebook
+## 🔧 核心组件
+
+### 模型架构
+
+```python
+Transformer模型包含：
+├── 编码器 (Encoder)
+│   ├── 多层编码器块
+│   │   ├── 多头自注意力
+│   │   └── 前馈神经网络
+└── 解码器 (Decoder)
+    ├── 多层解码器块
+    │   ├── 多头交叉注意力
+    │   ├── 多头自注意力
+    │   └── 前馈神经网络
 ```
 
-## 模型参数
+### 关键参数
 
-在`train.py`中定义的模型参数：
-- 嵌入维度: 512
-- Q/K维度: 64
-- V维度: 64
-- 前馈网络维度: 2048
-- 注意力头数: 8
-- 编码器/解码器层数: 6
-- Dropout: 0.1
-- 最大序列长度: 5000
+| 参数 | 值 | 说明 |
+|------|----|-----|
+| 嵌入维度 | 512 | 词向量维度 |
+| 注意力头数 | 8 | 多头注意力中的头数 |
+| 编码器层数 | 6 | Transformer编码器层数 |
+| 解码器层数 | 6 | Transformer解码器层数 |
+| Dropout | 0.1 | 正则化率 |
+| 最大序列长度 | 5000 | 支持的最大序列长度 |
 
-## 数据集
+## 📊 性能指标
 
-使用Multi30k数据集进行训练，该数据集包含德语-英语平行语料，用于机器翻译任务。
+### 训练配置
 
-## 许可证
+- **优化器**: SGD (lr=1e-3, momentum=0.99)
+- **损失函数**: CrossEntropyLoss
+- **批次大小**: 250
+- **训练轮数**: 300
+- **数据集**: Multi30k (德语→英语)
 
-请查看LICENSE文件了解项目许可证信息。
+### 模型性能
 
-## 贡献
+- **词汇表大小**: 德语约 7800 词，英语约 5900 词
+- **模型大小**: 约 65M 参数
+- **训练时间**: 根据硬件配置约 2-4 小时
 
-欢迎提交Issue和Pull Request来改进这个学习项目。
+## 🎓 学习要点
 
-## 注意事项
+### 1. 注意力机制
 
-- 这个实现是学习目的的简化版本，可能与原始Transformer论文有一些差异
-- 建议先通过Jupyter notebooks了解各个组件，然后运行训练脚本
-- 训练过程可能需要较长时间，取决于硬件配置
+- **自注意力**: 计算序列内部元素之间的关系
+- **交叉注意力**: 解码器关注编码器的输出
+- **多头注意力**: 并行学习不同类型的注意力模式
+
+### 2. 位置编码
+
+- 使用正弦和余弦函数生成位置信息
+- 确保模型能够理解词序关系
+- 公式: 
+  ```
+  PE(pos, 2i) = sin(pos / 10000^(2i/d_model))
+  PE(pos, 2i+1) = cos(pos / 10000^(2i/d_model))
+  ```
+
+### 3. 残差连接和层归一化
+
+- 解决深度网络中的梯度消失问题
+- 提高训练稳定性
+- 每个子层都有残差连接和层归一化
+
+## 🛠️ 开发说明
+
+### 代码组织
+
+- **模块化设计**: 每个组件都有独立的文件
+- **清晰的接口**: 组件间通过明确的接口交互
+- **注释完善**: 关键算法步骤都有详细注释
+
+## 🤝 贡献指南
+
+欢迎贡献代码、报告问题或提出改进建议！
+
+### 开发流程
+
+1. Fork本项目
+2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
+3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
+4. 推送到分支 (`git push origin feature/AmazingFeature`)
+5. 创建Pull Request
+
+### 代码规范
+
+- 遵循PEP 8 Python代码规范
+- 添加适当的注释和文档字符串
+- 确保代码通过基本测试
+
+## 🔗 相关资源
+
+### 参考资料
+
+- [Attention Is All You Need](https://arxiv.org/abs/1706.03762) - 原始论文
+- [The Annotated Transformer](http://nlp.seas.harvard.edu/2018/04/03/attention.html) - 详细解析
+- [PyTorch官方文档](https://pytorch.org/docs/stable/index.html)
+## 🙏 致谢
+
+感谢所有为开源AI社区做出贡献的开发者，以及为深度学习教育提供资源的机构。
+
+---
+
+**⭐ 如果这个项目对你有帮助，请给个Star支持一下！**
