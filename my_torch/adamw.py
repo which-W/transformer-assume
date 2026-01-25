@@ -72,7 +72,7 @@ class AdamW(Optimizer):
                 # v = betal * v + (1 - betal) * grand^2
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1 - beta2)
                 
-                # 偏差修正,消除初始值为0带来的偏移
+                # 偏差修正,消除初始值为0带来的偏移计算矫正后的alpha
                 bias_correction1 = 1 - beta1 ** state['step']
                 bias_correction2 = 1 - beta2 ** state['step']
                 step_size = lr * (bias_correction2 ** 0.5) / bias_correction1
