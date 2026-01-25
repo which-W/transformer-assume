@@ -15,6 +15,8 @@ class AdamW(Optimizer):
     
     def __init__(self, params, lr=1e-3, betas=(0.9, 0.999), eps=1e-8, 
                  weight_decay=0.01, amsgrad=False):
+        
+        
         if lr < 0.0:
             raise ValueError(f"Invalid learning rate: {lr}")
         if eps < 0.0:
@@ -31,19 +33,17 @@ class AdamW(Optimizer):
         super(AdamW, self).__init__(params, defaults)
     
     @torch.no_grad()
-    def step(self, closure=None):
+    def step(self):
         """
         执行单个优化步骤
-        参数:
-            closure: 一个重新评估模型并返回损失的闭包
         """
         loss = None
-        if closure is not None:
-            with torch.enable_grad():
-                loss = closure()
         
         for group in self.param_groups:
             beta1, beta2 = group['betas']
+            eps = group["eps"]
+            lr = group["lr"]
+            wd = group["weight_decay"]
             
             for p in group['params']:
                 if p.grad is None:
@@ -52,8 +52,6 @@ class AdamW(Optimizer):
                 grad = p.grad
                 if grad.is_sparse:
                     raise RuntimeError('AdamW does not support sparse gradients')
-                
-                amsgrad = group['amsgrad']
                 
                 state = self.state[p]
                 
@@ -64,38 +62,29 @@ class AdamW(Optimizer):
                     state['exp_avg'] = torch.zeros_like(p, memory_format=torch.preserve_format)
                     # 二阶矩估计
                     state['exp_avg_sq'] = torch.zeros_like(p, memory_format=torch.preserve_format)
-                    if amsgrad:
-                        # 维护最大的二阶矩估计
-                        state['max_exp_avg_sq'] = torch.zeros_like(p, memory_format=torch.preserve_format)
                 
-                exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
-                if amsgrad:
-                    max_exp_avg_sq = state['max_exp_avg_sq']
-                
+                exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq'] 
                 state['step'] += 1
                 
-                # AdamW的权重衰减
-                p.mul_(1 - group['lr'] * group['weight_decay'])
-                
                 # 更新一阶矩和二阶矩的指数移动平均
+                # m = betal * m + (1 - betal) * grad
                 exp_avg.mul_(beta1).add_(grad, alpha=1 - beta1)
+                # v = betal * v + (1 - betal) * grand^2
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1 - beta2)
-                
-                if amsgrad:
-                    # 维护最大的二阶矩估计
-                    torch.max(max_exp_avg_sq, exp_avg_sq, out=max_exp_avg_sq)
-                    denom = max_exp_avg_sq.sqrt().add_(group['eps'])
-                else:
-                    denom = exp_avg_sq.sqrt().add_(group['eps'])
                 
                 # 偏差修正,消除初始值为0带来的偏移
                 bias_correction1 = 1 - beta1 ** state['step']
                 bias_correction2 = 1 - beta2 ** state['step']
-                step_size = group['lr'] * (bias_correction2 ** 0.5) / bias_correction1
+                step_size = lr * (bias_correction2 ** 0.5) / bias_correction1
                 
-                # 参数更新
+                #参数更新：theta = theta - alpha_t * m / (sqrt(v) + eps)
+                denom = exp_avg_sq.sqrt().add_(eps)
                 p.addcdiv_(exp_avg, denom, value=-step_size)
-        
+                
+                #应用解耦的权重衰减
+                # theta = theta - alpha * lambda * theta
+                if wd:
+                    p.add_(p, alpha=-lr*wd)
         return loss
 
 
