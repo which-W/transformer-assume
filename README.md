@@ -58,6 +58,15 @@ PyTorch >= 2.1
 
 ### 安装依赖
 
+#### 方法一：使用requirements.txt（推荐）
+
+```bash
+# 安装所有依赖
+pip install -r requirements.txt
+```
+
+#### 方法二：手动安装
+
 ```bash
 # 安装PyTorch (根据CUDA版本选择)
 pip install torch torchvision torchaudio
