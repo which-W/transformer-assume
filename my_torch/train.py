@@ -27,7 +27,7 @@ def parse_args():
     parser.add_argument('--theta', type=float, default=10000.0, help='RoPE的theta参数')
     
     # 训练参数
-    parser.add_argument('--batch_size', type=int, default=32, help='批次大小')
+    parser.add_argument('--batch_size', type=int, default=8, help='批次大小')
     parser.add_argument('--max_lr', type=float, default=1.0, help='最大学习率')
     parser.add_argument('--min_lr', type=float, default=6e-5, help='最小学习率')
     parser.add_argument('--weight_decay', type=float, default=0.01, help='权重衰减')

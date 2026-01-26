@@ -15,7 +15,7 @@ def Clip_gradient_noem(parameters:Iterator[torch.nn.Parameter],max_norm:float):
     if not params_with_grads:
         return
     #计算全局L2范数
-    torch_norm = 0.0
+    total_norm = 0.0
     for p in params_with_grads:
         #使用.detache()非常重要
         #梯度裁剪是在计算完之后对倒数进行的数值操作，不能将计算范数也计入计算图
@@ -30,7 +30,7 @@ def Clip_gradient_noem(parameters:Iterator[torch.nn.Parameter],max_norm:float):
     
     if total_norm > max_norm:
         #计算统一的缩放系数
-        clip_coef = max_norm / (torch_norm + eps)
+        clip_coef = max_norm / (total_norm + eps)
         
         #原地修改各个参数的梯度
         #使用_mul直接修改内存不创建副本减少内存使用
