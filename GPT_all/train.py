@@ -53,7 +53,7 @@ def parse_args():
     
     # 检查点参数
     parser.add_argument('--checkpoint_dir', type=str, default='checkpoints', help='检查点保存目录')
-    parser.add_argument('--save_interval', type=int, default=1000, help='保存检查点的间隔步数')
+    parser.add_argument('--save_interval', type=int, default=5000, help='保存检查点的间隔步数')
     parser.add_argument('--resume_from', type=str, default=None, help='从检查点恢复训练')
     
     # 日志参数
