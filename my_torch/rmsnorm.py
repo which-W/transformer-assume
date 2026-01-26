@@ -13,15 +13,16 @@ class RMSNorm(nn.Module):
         eps: 防止除零的小常数
         elementwise_affine: 是否使用可学习的缩放参数
     """
-    def __init__(self, d_model, eps=1e-6, elementwise_affine=True):
+    def __init__(self, d_model, eps=1e-6, elementwise_affine=True,device=None,dtype=None):
         super(RMSNorm, self).__init__()
         self.d_model = d_model
         self.eps = eps
         self.elementwise_affine = elementwise_affine
-        
+        self.device = device
+        self.dtype = dtype
         if self.elementwise_affine:
             # 可学习的缩放参数 (gain)
-            self.weight = nn.Parameter(torch.ones(d_model))
+            self.weight = nn.Parameter(torch.ones(d_model,device=self.device,dtype=self.dtype))
         else:
             self.register_parameter('weight', None)
     

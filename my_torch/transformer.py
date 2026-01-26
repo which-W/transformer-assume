@@ -43,14 +43,14 @@ class TransformerLM(nn.Module):
         self.ln_output = nn.Linear(d_model,vocab_size,**factroy_pra)
     
     def forward(self,token_ids:torch.Tensor):
-        b,s = token_ids.shape()
+        b,s = token_ids.shape
         #获取Rope的位置向量
-        token_position = torch.arange(s,device=self.device,dtype=self.dtype).unsqueeze(0).expand(b,s)
+        token_position = torch.arange(s,device=self.device,dtype=torch.long).unsqueeze(0).expand(b,s)
         #embeding
-        x = self.embedding(token_ids,device = self.device,dtype=self.dtype)
+        x = self.embedding(token_ids)
         #逐层通过block
         for layer in self.layers:
-            x = layer(x,token_position,device = self.device,dtype=self.dtype)
+            x = layer(x,token_position)
         #最终归一化，如果use_rms_norm为false则不会通过这一层
         x = self.ln_final(x)
         #返回投射到词表空间的logits

@@ -22,7 +22,7 @@ def parse_args():
     parser.add_argument('--n_head', type=int, default=8, help='注意力头数')
     parser.add_argument('--n_layer', type=int, default=6, help='Transformer层数')
     parser.add_argument('--d_ff', type=int, default=2048, help='前馈网络维度')
-    parser.add_argument('--vocab_size', type=int, default=50257, help='词表大小')
+    parser.add_argument('--vocab_size', type=int, default=30000, help='词表大小')
     parser.add_argument('--max_seq_len', type=int, default=512, help='最大序列长度')
     parser.add_argument('--theta', type=float, default=10000.0, help='RoPE的theta参数')
     
@@ -39,7 +39,7 @@ def parse_args():
     #移除RMSNorm
     parser.add_argument("--no_rms_norm", action="store_true",help="让RMSNORM移除")
     #pre-norm or pre-norm
-    parser.add_argument("--norm_rope",type=str,action="pre",choices=["pre","post"],help ="Normalization Placement")
+    parser.add_argument("--norm_rope", type=str, default="pre", choices=["pre","post"], help="Normalization Placement")
     #移除RoPE
     parser.add_argument("--no_rope",action="store_true",help="禁用Rope")
     #SwiGLU or SiLU
@@ -102,18 +102,18 @@ def train(args):
     if not os.path.exists(args.train_data_path):
         raise FileNotFoundError(f"数据文件不存在: {args.train_data_path}")
     
-    train_data = np.memmap(args.train_data_path, dtype=np.int64, mode='r')
+    train_data = np.memmap(args.train_data_path, dtype=np.uint16, mode='r')
     print(f"训练数据: {args.train_data_path}, 数据量: {len(train_data):,} tokens")
     
     val_data = None
-    if args.val_data_path:
-        if not os.path.exists(args.val_data_path):
-            raise FileNotFoundError(f"验证数据文件不存在: {args.val_data_path}")
-        val_data = np.memmap(args.val_data_path, dtype=np.int64, mode='r')
-        print(f"验证数据: {args.val_data_path}, 数据量: {len(val_data):,} tokens")
+    if args.valid_data_path:
+        if not os.path.exists(args.valid_data_path):
+            raise FileNotFoundError(f"验证数据文件不存在: {args.valid_data_path}")
+        val_data = np.memmap(args.valid_data_path, dtype=np.uint16, mode='r')
+        print(f"验证数据: {args.valid_data_path}, 数据量: {len(val_data):,} tokens")
     
     #处理消融实验逻辑
-    actual_rope_theta = None if args.on_rope else 10000.0
+    actual_rope_theta = None if args.no_rope else 10000.0
     #use_rms_norm逻辑取反
     use_rms_norm = not args.no_rms_norm
     
@@ -129,7 +129,7 @@ def train(args):
         device=args.device,
         dtype=dtype,
         use_rms_norm=use_rms_norm,
-        norm_mode=args.norm_mode,
+        norm_model=args.norm_rope,
         ffn_type=args.ffn_type,
     ).to(args.device)
     

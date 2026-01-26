@@ -17,8 +17,8 @@ class TransformerBlock(nn.Module):
             dtype=dtype,
         )
         #初始化两个RMSNorm层，用于attention和FNN
-        self.ln1 = RMSNorm(d_model=d_model,device = device ,dtype =dtype)
-        self.ln2 = RMSNorm(d_model=d_model,device = device ,dtype =dtype)
+        self.ln1 = RMSNorm(d_model=d_model,device=device,dtype=dtype)
+        self.ln2 = RMSNorm(d_model=d_model,device=device,dtype=dtype)
         
         #初始化前反馈网络（SWiGLU）
         self.ffn = SwiGLU(d_model,d_ff,device=device,dtype=dtype)
