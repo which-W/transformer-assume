@@ -1,0 +1,4 @@
+$env:TMPDIR = "E:\pip_temp"                                                                                                       
+$env:TMP = "E:\pip_temp"                                                                                                          
+$env:TEMP = "E:\pip_temp"                                                                                                         
+$env:PIP_CACHE_DIR = "E:\pip_cache" 
