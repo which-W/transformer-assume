@@ -1,24 +1,14 @@
 # 企业级 MoE Transformer 实现
 
-这是一个参考 DeepSeek V2 设计理念的 Mixture of Experts (MoE) Transformer 实现,具有企业级代码质量和完整的功能。
-
-## 📋 目录
-
-- [核心特性](#核心特性)
-- [架构设计](#架构设计)
-- [文件说明](#文件说明)
-- [快速开始](#快速开始)
-- [详细说明](#详细说明)
-- [性能优化](#性能优化)
-- [与DeepSeek的对比](#与deepseek的对比)
+这是一个参考 DeepSeek V2 设计理念的 Mixture of Experts (MoE) Transformer 实现。
 
 ## 🚀 核心特性
 
 ### 1. **完整的 MoE 实现**
-- ✅ Top-K 路由机制 (通常 K=2)
-- ✅ 负载均衡辅助损失
-- ✅ 多专家并行计算
-- ✅ 门控网络 (Gating Network)
+- Top-K 路由机制 (通常 K=2)
+- 负载均衡辅助损失
+- 多专家并行计算
+- 门控网络 (Gating Network)
 
 ### 2. **灵活的架构选择**
 - **全MoE模型**: 所有层都使用 MoE
@@ -36,8 +26,6 @@
 - 详细的文档注释
 - 模块化设计,易于扩展
 - 完整的使用示例
-
-## 🏗️ 架构设计
 
 ### MoE Block 结构
 
@@ -186,14 +174,6 @@ for batch in dataloader:
 
 ### MoE 核心概念
 
-#### 1. 什么是 MoE?
-
-Mixture of Experts (MoE) 通过以下方式提升模型能力:
-
-- **参数扩展**: 用 N 个专家替代单个 FFN,参数量增加 N 倍
-- **稀疏激活**: 每个 token 只激活 K 个专家 (K << N)
-- **专业化**: 不同专家学习处理不同类型的输入
-
 #### 2. Top-K 路由
 
 ```
@@ -290,32 +270,6 @@ model = HybridMoETransformerLM(
 )
 ```
 
-## 🔍 与 DeepSeek 的对比
-
-### 相似之处
-
-| 特性 | 本实现 | DeepSeek V2 |
-|-----|--------|------------|
-| 架构 | MoE Transformer | MoE Transformer |
-| 路由 | Top-K Gating | Top-K Gating |
-| 激活 | SwiGLU | SwiGLU |
-| 归一化 | RMSNorm | RMSNorm |
-| 位置编码 | RoPE | RoPE |
-| 负载均衡 | ✓ | ✓ |
-
-### 差异
-
-1. **专家粒度**: 
-   - 本实现: FFN级别的专家
-   - DeepSeek V2: 可能包含更细粒度的路由
-
-2. **规模**:
-   - 本实现: 可配置,适合实验和中等规模
-   - DeepSeek V2: 超大规模 (数百亿参数)
-
-3. **优化**:
-   - 本实现: 标准优化
-   - DeepSeek V2: 高度优化的分布式训练,自定义kernel
 
 ## 🧪 实验建议
 
@@ -368,6 +322,5 @@ strategies = {
 
 ---
 
-**作者**: Claude  
-**日期**: 2026-01  
-**版本**: 1.0
+**作者**: Which_W 
+
