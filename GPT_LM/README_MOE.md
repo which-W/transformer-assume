@@ -32,13 +32,13 @@
 ```
 输入 x [batch, seq, d_model]
     ↓
-LayerNorm
+RMSNorm
     ↓
 Multi-Head Attention
     ↓
 残差连接 (+)
     ↓
-LayerNorm
+RMSNorm
     ↓
 ┌─────────── MoE Layer ───────────┐
 │                                  │
