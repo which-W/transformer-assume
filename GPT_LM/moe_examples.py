@@ -8,10 +8,7 @@ from moe_transformer import MoETransformerLM, HybridMoETransformerLM
 
 def example_basic_moe():
     """基础MoE模型示例"""
-    print("=" * 60)
     print("示例1: 基础MoE Transformer模型")
-    print("=" * 60)
-    
     # 模型配置
     config = {
         "d_model": 512,
@@ -65,9 +62,7 @@ def example_basic_moe():
 
 def example_hybrid_moe():
     """混合MoE模型示例"""
-    print("\n" + "=" * 60)
     print("示例2: 混合MoE Transformer模型")
-    print("=" * 60)
     
     config = {
         "d_model": 512,
@@ -108,9 +103,7 @@ def example_hybrid_moe():
 
 def example_training_loop():
     """训练循环示例"""
-    print("\n" + "=" * 60)
     print("示例3: MoE模型训练循环")
-    print("=" * 60)
     
     # 小模型用于演示
     config = {
@@ -178,9 +171,7 @@ def example_training_loop():
 
 def example_inference():
     """推理示例"""
-    print("\n" + "=" * 60)
     print("示例4: MoE模型推理")
-    print("=" * 60)
     
     config = {
         "d_model": 256,
@@ -278,7 +269,6 @@ def compare_moe_vs_standard():
 if __name__ == "__main__":
     print("\n" + "="*60)
     print("MoE Transformer 完整示例")
-    print("="*60)
     
     # 运行所有示例
     example_basic_moe()
