@@ -1,0 +1,291 @@
+"""
+MoE Transformer Language Model
+完整的基于MoE的Transformer语言模型
+"""
+import torch
+from torch import nn
+from typing import Optional, List
+from emb import CustomEmbedding
+from rmsnorm import RMSNorm
+from moe_transformer_block import MoETransformerBlock, HybridTransformerBlock
+
+
+class MoETransformerLM(nn.Module):
+    """
+    MoE版本的Transformer语言模型
+    
+    特点:
+    1. 所有层都使用MoE
+    2. 统一的专家配置
+    3. 聚合所有层的辅助损失
+    """
+    
+    def __init__(
+        self,
+        d_model: int,
+        n_head: int,
+        vocab_size: int,
+        max_seq_len: int,
+        d_ff: int,
+        theta: float,
+        n_layer: int,
+        # MoE参数
+        n_experts: int = 8,
+        top_k: int = 2,
+        use_moe_aux_loss: bool = True,
+        moe_aux_loss_weight: float = 0.01,
+        # 其他参数
+        device: Optional[torch.device] = None,
+        dtype: Optional[torch.dtype] = None,
+        use_rms_norm: bool = True,
+    ):
+        """
+        Args:
+            d_model: 模型维度
+            n_head: 注意力头数
+            vocab_size: 词表大小
+            max_seq_len: 最大序列长度
+            d_ff: FFN中间层维度
+            theta: RoPE theta参数
+            n_layer: Transformer层数
+            n_experts: 每层的专家数量
+            top_k: 每个token激活的专家数
+            use_moe_aux_loss: 是否使用负载均衡损失
+            moe_aux_loss_weight: 辅助损失权重
+        """
+        super().__init__()
+        self.device = device
+        self.dtype = dtype
+        self.n_layer = n_layer
+        self.use_moe_aux_loss = use_moe_aux_loss
+        
+        factory_kwargs = {"device": device, "dtype": dtype}
+        
+        # Embedding层
+        self.embedding = CustomEmbedding(vocab_size, d_model, **factory_kwargs)
+        
+        # 堆叠MoE Transformer blocks
+        self.layers = nn.ModuleList([
+            MoETransformerBlock(
+                d_model=d_model,
+                d_ff=d_ff,
+                n_head=n_head,
+                max_seq_len=max_seq_len,
+                theta=theta,
+                n_experts=n_experts,
+                top_k=top_k,
+                use_moe_aux_loss=use_moe_aux_loss,
+                moe_aux_loss_weight=moe_aux_loss_weight,
+                **factory_kwargs,
+            )
+            for _ in range(n_layer)
+        ])
+        
+        # 最终输出层
+        if use_rms_norm:
+            self.ln_final = RMSNorm(d_model, **factory_kwargs)
+        else:
+            self.ln_final = nn.Identity()
+        
+        # 输出投影到词表
+        self.ln_output = nn.Linear(d_model, vocab_size, **factory_kwargs)
+        
+        # 存储总辅助损失
+        self.total_aux_loss = None
+    
+    def forward(self, token_ids: torch.Tensor) -> torch.Tensor:
+        """
+        前向传播
+        
+        Args:
+            token_ids: [batch_size, seq_len] token索引
+        
+        Returns:
+            logits: [batch_size, seq_len, vocab_size] 输出logits
+        """
+        b, s = token_ids.shape
+        
+        # 生成位置编码
+        token_position = torch.arange(
+            s, 
+            device=self.device, 
+            dtype=torch.long
+        ).unsqueeze(0).expand(b, s)
+        
+        # Embedding
+        x = self.embedding(token_ids)
+        
+        # 收集所有层的辅助损失
+        aux_losses = []
+        
+        # 逐层前向传播
+        for layer in self.layers:
+            x = layer(x, token_position)
+            if self.use_moe_aux_loss and self.training:
+                aux_losses.append(layer.get_aux_loss())
+        
+        # 聚合辅助损失
+        if aux_losses:
+            self.total_aux_loss = torch.stack(aux_losses).sum()
+        else:
+            self.total_aux_loss = torch.tensor(0.0, device=x.device)
+        
+        # 最终归一化
+        x = self.ln_final(x)
+        
+        # 投影到词表
+        logits = self.ln_output(x)
+        
+        return logits
+    
+    def get_aux_loss(self) -> torch.Tensor:
+        """
+        获取聚合的辅助损失
+        训练时应该加到主损失中: total_loss = lm_loss + aux_loss
+        
+        Returns:
+            total_aux_loss: 所有层的辅助损失之和
+        """
+        return self.total_aux_loss if self.total_aux_loss is not None else torch.tensor(0.0)
+    
+    def get_num_params(self, non_embedding: bool = True) -> int:
+        """
+        计算模型参数量
+        
+        Args:
+            non_embedding: 是否排除embedding层参数
+        
+        Returns:
+            n_params: 参数数量
+        """
+        n_params = sum(p.numel() for p in self.parameters())
+        if non_embedding:
+            n_params -= self.embedding.weight.numel()
+        return n_params
+
+
+class HybridMoETransformerLM(nn.Module):
+    """
+    混合MoE Transformer语言模型
+    
+    特点:
+    1. 可以指定哪些层使用MoE,哪些层使用标准FFN
+    2. 灵活的架构配置
+    3. 类似DeepSeek V2的稀疏激活策略
+    
+    例如: 可以配置为每4层中有2层是MoE层
+    """
+    
+    def __init__(
+        self,
+        d_model: int,
+        n_head: int,
+        vocab_size: int,
+        max_seq_len: int,
+        d_ff: int,
+        theta: float,
+        n_layer: int,
+        # MoE配置
+        moe_layer_indices: Optional[List[int]] = None,  # 哪些层使用MoE
+        n_experts: int = 8,
+        top_k: int = 2,
+        use_moe_aux_loss: bool = True,
+        moe_aux_loss_weight: float = 0.01,
+        # 其他参数
+        device: Optional[torch.device] = None,
+        dtype: Optional[torch.dtype] = None,
+        use_rms_norm: bool = True,
+    ):
+        """
+        Args:
+            moe_layer_indices: 使用MoE的层索引列表
+                               例如 [2, 5, 8, 11] 表示第2,5,8,11层使用MoE
+                               如果为None,则所有层都使用MoE
+        """
+        super().__init__()
+        self.device = device
+        self.dtype = dtype
+        self.n_layer = n_layer
+        
+        # 如果未指定,默认所有层都用MoE
+        if moe_layer_indices is None:
+            moe_layer_indices = list(range(n_layer))
+        
+        self.moe_layer_indices = set(moe_layer_indices)
+        
+        factory_kwargs = {"device": device, "dtype": dtype}
+        
+        # Embedding
+        self.embedding = CustomEmbedding(vocab_size, d_model, **factory_kwargs)
+        
+        # 构建混合层
+        self.layers = nn.ModuleList([
+            HybridTransformerBlock(
+                d_model=d_model,
+                d_ff=d_ff,
+                n_head=n_head,
+                max_seq_len=max_seq_len,
+                theta=theta,
+                use_moe=(i in self.moe_layer_indices),  # 判断是否使用MoE
+                n_experts=n_experts,
+                top_k=top_k,
+                use_moe_aux_loss=use_moe_aux_loss,
+                moe_aux_loss_weight=moe_aux_loss_weight,
+                **factory_kwargs,
+            )
+            for i in range(n_layer)
+        ])
+        
+        # 输出层
+        if use_rms_norm:
+            self.ln_final = RMSNorm(d_model, **factory_kwargs)
+        else:
+            self.ln_final = nn.Identity()
+        
+        self.ln_output = nn.Linear(d_model, vocab_size, **factory_kwargs)
+        
+        self.total_aux_loss = None
+    
+    def forward(self, token_ids: torch.Tensor) -> torch.Tensor:
+        b, s = token_ids.shape
+        
+        # 位置编码
+        token_position = torch.arange(
+            s, device=self.device, dtype=torch.long
+        ).unsqueeze(0).expand(b, s)
+        
+        # Embedding
+        x = self.embedding(token_ids)
+        
+        # 收集辅助损失
+        aux_losses = []
+        
+        # 逐层传播
+        for layer in self.layers:
+            x = layer(x, token_position)
+            if self.training:
+                aux_loss = layer.get_aux_loss()
+                if aux_loss.item() > 0:
+                    aux_losses.append(aux_loss)
+        
+        # 聚合辅助损失
+        if aux_losses:
+            self.total_aux_loss = torch.stack(aux_losses).sum()
+        else:
+            self.total_aux_loss = torch.tensor(0.0, device=x.device)
+        
+        # 输出
+        x = self.ln_final(x)
+        logits = self.ln_output(x)
+        
+        return logits
+    
+    def get_aux_loss(self) -> torch.Tensor:
+        return self.total_aux_loss if self.total_aux_loss is not None else torch.tensor(0.0)
+    
+    def print_architecture(self):
+        """打印模型架构信息"""
+        print(f"Total layers: {self.n_layer}")
+        print(f"MoE layers: {len(self.moe_layer_indices)}")
+        print(f"Standard FFN layers: {self.n_layer - len(self.moe_layer_indices)}")
+        print(f"MoE layer indices: {sorted(self.moe_layer_indices)}")
