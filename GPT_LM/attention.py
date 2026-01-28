@@ -151,13 +151,27 @@ class CauseMutiHeadAttention(nn.Module):
             # 生成因果掩码
             # Q 的长度是当前输入长度 s
             # K 的长度是缓存长度 cached_seq_len
-            mask = torch.tril(
-                torch.ones(s, cached_seq_len, device=self.device, dtype=torch.bool)
-            )
+            if s == 1:
+                # 生成阶段：单个新token可以看所有历史token
+                # mask shape: [1, cached_seq_len]，全为True
+                mask = torch.ones(1, cached_seq_len, device=self.device, dtype=torch.bool)
+            else:
+                # Prefill阶段：需要完整的因果掩码
+                # 创建 [s, cached_seq_len] 的掩码
+                mask = torch.zeros(s, cached_seq_len, device=self.device, dtype=torch.bool)
+                
+                # 历史缓存部分（start_pos之前）全部可见
+                if start_pos > 0:
+                    mask[:, :start_pos] = True
+                
+                # 当前输入部分（start_pos到start_pos+s）使用下三角掩码
+                current_mask = torch.tril(
+                    torch.ones(s, s, device=self.device, dtype=torch.bool)
+                )
+                mask[:, start_pos:start_pos+s] = current_mask
             
             # 如果是生成阶段(s=1)，Q只需要看所有之前的K
             # mask shape: [1, cached_seq_len]，全为True
-            
         else:
             # 训练模式: 标准因果掩码
             mask = torch.tril(torch.ones(s, s, device=self.device, dtype=torch.bool))

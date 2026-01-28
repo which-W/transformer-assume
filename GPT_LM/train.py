@@ -32,7 +32,7 @@ def parse_args():
     parser.add_argument('--min_lr', type=float, default=3e-5, help='最小学习率')
     parser.add_argument('--weight_decay', type=float, default=0.01, help='权重衰减')
     parser.add_argument('--warmup_steps', type=int, default=2000, help='预热步数')
-    parser.add_argument('--total_steps', type=int, default=100000, help='总训练步数')
+    parser.add_argument('--total_steps', type=int, default=5000, help='总训练步数')
     parser.add_argument('--max_grad_norm', type=float, default=1.0, help='梯度裁剪阈值')
     
     #实验参数
@@ -172,7 +172,7 @@ def train(args):
         x, y = get_batch(train_data, args.batch_size, args.max_seq_len, args.device)
         
         # 前向传播
-        logits = model(x)
+        logits = model(x,)
         loss = Cross_entropy(logits, y)
         
         # 反向传播

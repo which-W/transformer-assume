@@ -7,7 +7,7 @@ from pathlib import Path
 
 
 class TextGenerator:
-    """文本生成器类"""
+    """文本生成器类 - 修复版"""
     
     def __init__(self, model_path, tokenizer_path, device='cuda'):
         """
@@ -52,12 +52,13 @@ class TextGenerator:
         
         print("模型加载完成!")
         print(f"模型参数量: {sum(p.numel() for p in self.model.parameters()):,}")
+        print("✓ KV Cache 已启用")
     
     @torch.no_grad()
-    def generate(self, prompt, max_new_tokens=100, temperature=1.0, 
+    def generate(self, prompt, max_new_tokens=10000, temperature=1.0, 
                  top_k=None, top_p=0.9, repetition_penalty=1.0):
         """
-        生成文本
+        生成文本 - 修复版
         
         Args:
             prompt: 输入提示文本
@@ -74,25 +75,24 @@ class TextGenerator:
         encoding = self.tokenizer.encode(prompt)
         input_ids = torch.tensor([encoding.ids], dtype=torch.long, device=self.device)
         
+        # 检查prompt长度
+        max_seq_len = self.config.get('max_seq_len', 512)
+        if input_ids.shape[1] > max_seq_len - max_new_tokens:
+            print(f"警告: Prompt太长 ({input_ids.shape[1]} tokens)，截断到 {max_seq_len - max_new_tokens}")
+            input_ids = input_ids[:, -(max_seq_len - max_new_tokens):]
+        
         # 用于重复惩罚的token计数
         token_counts = {}
-        # 清空KV Cache，准备新的生成序列
+        
+        # 关键修复1: 清空缓存
         self.model.clear_cache()
-        # 生成循环
-        for _ in range(max_new_tokens):
-            # 如果序列太长，截断到max_seq_len
-            max_seq_len = self.config.get('max_seq_len', 512)
-            if input_ids.shape[1] > max_seq_len:
-                input_ids = input_ids[:, -max_seq_len:]
-            
-            # 前向传播
-            # Prefill阶段 - 处理整个prompt
-            # 使用KV Cache，一次性处理所有prompt tokens
-            logits = self.model(input_ids, use_cache=True)  # 启用Cache ,[1, seq_len, vocab_size]
-            
-            # 只取最后一个位置的logits
-            next_token_logits = logits[:, -1, :]  # [1, vocab_size]
-            
+        
+        # 关键修复2: Prefill阶段 - 只处理一次prompt
+        logits = self.model(input_ids, use_cache=True)
+        next_token_logits = logits[:, -1, :]
+        
+        # 关键修复3: Generation循环 - 每次只处理新token
+        for i in range(max_new_tokens):
             # 应用重复惩罚
             if repetition_penalty != 1.0:
                 for token_id, count in token_counts.items():
@@ -127,11 +127,17 @@ class TextGenerator:
             token_id = next_token.item()
             token_counts[token_id] = token_counts.get(token_id, 0) + 1
             
-            # 拼接到序列
+            # 拼接到序列（用于最终解码）
             input_ids = torch.cat([input_ids, next_token], dim=1)
-            #Generation阶段 - 只处理新token
-            # 使用KV Cache，只需要传入新生成的token
+            
+            # 检查序列长度
+            if input_ids.shape[1] >= max_seq_len:
+                print(f"\n达到最大序列长度 {max_seq_len}，停止生成")
+                break
+            
+            # 只传入新token，不是整个序列 
             logits = self.model(next_token, use_cache=True)
+            next_token_logits = logits[:, -1, :]
             
             # 检查是否生成了结束符（如果有的话）
             # 这里可以根据实际情况添加EOS token的检查
@@ -141,10 +147,11 @@ class TextGenerator:
         generated_text = self.tokenizer.decode(generated_ids)
         
         return generated_text
-    @torch.no_grad()
+    
     def interactive_mode(self):
         """交互式生成模式"""
         print("进入交互模式 (输入 'quit' 退出)")
+        print("提示: 每次生成都会自动清空KV Cache\n")
         
         while True:
             try:
@@ -166,8 +173,7 @@ class TextGenerator:
                     repetition_penalty=1.2
                 )
                 
-            
-                print("生成结果:")
+                print("\n生成结果:")
                 print(generated_text)
                 
             except KeyboardInterrupt:
@@ -175,6 +181,8 @@ class TextGenerator:
                 break
             except Exception as e:
                 print(f"生成出错: {e}")
+                import traceback
+                traceback.print_exc()
 
 
 def main():
