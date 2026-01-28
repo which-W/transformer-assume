@@ -1,3 +1,4 @@
+from typing import Optional, Tuple
 import torch 
 import math 
 from softmax import StableSoftmax
@@ -35,8 +36,67 @@ def scaled_dot_product_attention(
     
     return output
 
+class KVCache:
+    """
+    KV Cache 用于存储和管理 Key-Value 缓存
+    
+    在自回归生成时:
+    - 首次输入: 缓存所有 K, V
+    - 后续输入: 只计算新token的 K, V，拼接到缓存中
+    """
+    
+    def __init__(self):
+        self.k_cache: Optional[torch.Tensor] = None  # [batch, n_head, seq_len, d_k]
+        self.v_cache: Optional[torch.Tensor] = None  # [batch, n_head, seq_len, d_k]
+        
+    def update(
+        self, 
+        k: torch.Tensor, 
+        v: torch.Tensor,
+        start_pos: int = 0
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        更新缓存并返回完整的 K, V
+        
+        Args:
+            k: 新的 Key [batch, n_head, seq_len, d_k]
+            v: 新的 Value [batch, n_head, seq_len, d_k]
+            start_pos: 新token在序列中的起始位置
+            
+        Returns:
+            完整的 K, V (包含缓存的历史部分)
+        """
+        if self.k_cache is None:
+            # 首次调用，直接缓存
+            self.k_cache = k
+            self.v_cache = v
+        else:
+            # 拼接新的 K, V 到缓存
+            self.k_cache = torch.cat([self.k_cache, k], dim=2)
+            self.v_cache = torch.cat([self.v_cache, v], dim=2)
+            
+        return self.k_cache, self.v_cache
+    
+    def clear(self):
+        """清空缓存"""
+        self.k_cache = None
+        self.v_cache = None
+    
+    def get_seq_len(self) -> int:
+        """获取当前缓存的序列长度"""
+        if self.k_cache is None:
+            return 0
+        return self.k_cache.size(2)
+
+
 class CauseMutiHeadAttention(nn.Module):
-    def __init__ (self , d_model:int , n_head : int , max_seq_size : int = None, device = None , dtype = None , theta=None):
+    def __init__ (self , 
+                  d_model:int , 
+                  n_head : int , 
+                  max_seq_size : int = None, 
+                  device = None , 
+                  dtype = None , 
+                  theta=None):
         super().__init__()
         #判断维度
         assert d_model % n_head == 0
@@ -57,7 +117,12 @@ class CauseMutiHeadAttention(nn.Module):
         else:
             self.rope = None
         
-    def forward(self,x:torch.tensor, token_position:torch.tensor = None):
+        self.k_v_cache = KVCache()
+    def forward(self,x:torch.tensor, 
+                token_position:torch.tensor = None,
+                use_cache: bool = False,
+                start_pos: int = 0
+                )-> torch.Tensor :
         b,s,d = x.shape
         #将映射拆分为多头
         q = rearrange(self.q_pro(x),'... s (h d) -> ... h s d', h=self.n_head)
@@ -75,9 +140,27 @@ class CauseMutiHeadAttention(nn.Module):
             q = self.rope(q,token_position)
             k = self.rope(k,token_position)
         
-        
-        #生成因果掩码，保证query只能看见当前以及之前的key
-        mask = torch.tril(torch.ones(s,s,device = self.device,dtype = torch.long))
+        # 使用 KV Cache
+        if use_cache:
+            # 更新缓存并获取完整的 K, V
+            k, v = self.k_v_cache.update(k, v, start_pos)
+            
+            # 当前缓存的序列长度
+            cached_seq_len = self.k_v_cache.get_seq_len()
+            
+            # 生成因果掩码
+            # Q 的长度是当前输入长度 s
+            # K 的长度是缓存长度 cached_seq_len
+            mask = torch.tril(
+                torch.ones(s, cached_seq_len, device=self.device, dtype=torch.bool)
+            )
+            
+            # 如果是生成阶段(s=1)，Q只需要看所有之前的K
+            # mask shape: [1, cached_seq_len]，全为True
+            
+        else:
+            # 训练模式: 标准因果掩码
+            mask = torch.tril(torch.ones(s, s, device=self.device, dtype=torch.bool))
         
         #核心注意力计算（SDPA）(bath_size,heads,seq,d_k)
         attn_out = scaled_dot_product_attention(q,k,v,mask=mask)
@@ -86,167 +169,11 @@ class CauseMutiHeadAttention(nn.Module):
         attn_out = rearrange(attn_out,'... h s d -> ... s (h d)')
 
         return self.output_pro(attn_out)
+    def clear_cache(self):
+        """清空 KV Cache"""
+        self.k_v_cache.clear()
+    
+    def get_cache_seq_len(self) -> int:
+        """获取当前缓存的序列长度"""
+        return self.k_v_cache.get_seq_len()
 
-def test_cause_multi_head_attention():
-    """测试因果多头注意力机制"""
-    
-    print("=" * 60)
-    print("测试因果多头注意力机制 (CauseMutiHeadAttention)")
-    print("=" * 60)
-    
-    # 设置随机种子以确保可复现性
-    torch.manual_seed(42)
-    
-    # 测试参数
-    batch_size = 2
-    seq_len = 8
-    d_model = 512
-    n_head = 8
-    max_seq_size = 1024
-    theta = 10000
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    
-    print(f"\n配置参数:")
-    print(f"  - Batch Size: {batch_size}")
-    print(f"  - Sequence Length: {seq_len}")
-    print(f"  - Model Dimension: {d_model}")
-    print(f"  - Number of Heads: {n_head}")
-    print(f"  - Device: {device}")
-    
-    # 初始化模型
-    print(f"\n初始化模型...")
-    model = CauseMutiHeadAttention(
-        d_model=d_model,
-        n_head=n_head,
-        max_seq_size=max_seq_size,
-        device=device,
-        theta=theta
-    )
-    model.to(device)
-    print(f"  ✓ 模型初始化成功")
-    
-    # 测试1: 基本前向传播
-    print(f"\n测试1: 基本前向传播")
-    print("-" * 60)
-    x = torch.randn(batch_size, seq_len, d_model, device=device)
-    print(f"  输入形状: {x.shape}")
-    
-    output = model(x)
-    print(f"  输出形状: {output.shape}")
-    assert output.shape == (batch_size, seq_len, d_model), "输出形状不正确!"
-    print(f"  ✓ 输出形状正确: {output.shape}")
-    
-    # 测试2: 因果性检查
-    print(f"\n测试2: 因果性检查")
-    print("-" * 60)
-    print("  验证每个位置只能看到当前及之前的token...")
-    
-    # 创建一个特殊的输入，便于观察因果性
-    x_causal = torch.zeros(1, seq_len, d_model, device=device)
-    for i in range(seq_len):
-        x_causal[0, i, 0] = i + 1  # 每个位置有唯一标识
-    
-    with torch.no_grad():
-        output_causal = model(x_causal)
-    
-    # 修改未来的token，看输出是否变化
-    x_causal_modified = x_causal.clone()
-    x_causal_modified[0, -1, :] = 999  # 修改最后一个token
-    
-    with torch.no_grad():
-        output_modified = model(x_causal_modified)
-    
-    # 检查前面的token输出是否不变
-    diff = torch.abs(output_causal[0, :-1] - output_modified[0, :-1]).max()
-    print(f"  前面token的最大输出差异: {diff.item():.6f}")
-    if diff < 1e-5:
-        print(f"  ✓ 因果性验证通过: 未来token不影响过去")
-    else:
-        print(f"  ✗ 警告: 因果性可能存在问题")
-    
-    # 测试3: 梯度反向传播
-    print(f"\n测试3: 梯度反向传播")
-    print("-" * 60)
-    x_grad = torch.randn(batch_size, seq_len, d_model, device=device, requires_grad=True)
-    output_grad = model(x_grad)
-    loss = output_grad.sum()
-    loss.backward()
-    
-    print(f"  输入梯度形状: {x_grad.grad.shape}")
-    print(f"  输入梯度范数: {x_grad.grad.norm().item():.6f}")
-    assert x_grad.grad is not None, "梯度计算失败!"
-    print(f"  ✓ 梯度反向传播成功")
-    
-    # 测试4: 不同序列长度
-    print(f"\n测试4: 不同序列长度")
-    print("-" * 60)
-    for test_seq_len in [4, 16, 32]:
-        x_var_len = torch.randn(batch_size, test_seq_len, d_model, device=device)
-        with torch.no_grad():
-            output_var_len = model(x_var_len)
-        assert output_var_len.shape == (batch_size, test_seq_len, d_model)
-        print(f"  序列长度 {test_seq_len}: {output_var_len.shape} ✓")
-    
-    # 测试5: 自定义token位置
-    print(f"\n测试5: 自定义token位置")
-    print("-" * 60)
-    token_position = torch.arange(seq_len, device=device).unsqueeze(0).expand(batch_size, -1)
-    print(f"  位置编码形状: {token_position.shape}")
-    
-    with torch.no_grad():
-        output_with_pos = model(x, token_position=token_position)
-    
-    print(f"  带位置编码的输出形状: {output_with_pos.shape}")
-    print(f"  ✓ 自定义位置编码成功")
-    
-    # 测试6: 参数统计
-    print(f"\n测试6: 模型参数统计")
-    print("-" * 60)
-    total_params = sum(p.numel() for p in model.parameters())
-    trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    print(f"  总参数量: {total_params:,}")
-    print(f"  可训练参数: {trainable_params:,}")
-    
-    # 测试7: 输出值范围检查
-    print(f"\n测试7: 输出值检查")
-    print("-" * 60)
-    with torch.no_grad():
-        output_check = model(x)
-    
-    print(f"  输出最小值: {output_check.min().item():.6f}")
-    print(f"  输出最大值: {output_check.max().item():.6f}")
-    print(f"  输出均值: {output_check.mean().item():.6f}")
-    print(f"  输出标准差: {output_check.std().item():.6f}")
-    
-    # 检查是否有NaN或Inf
-    has_nan = torch.isnan(output_check).any()
-    has_inf = torch.isinf(output_check).any()
-    
-    if not has_nan and not has_inf:
-        print(f"  ✓ 输出值正常，无NaN或Inf")
-    else:
-        print(f"  ✗ 警告: 输出包含NaN或Inf")
-    
-    # 测试8: 批次大小为1
-    print(f"\n测试8: 单样本测试 (batch_size=1)")
-    print("-" * 60)
-    x_single = torch.randn(1, seq_len, d_model, device=device)
-    with torch.no_grad():
-        output_single = model(x_single)
-    print(f"  输入形状: {x_single.shape}")
-    print(f"  输出形状: {output_single.shape}")
-    print(f"  ✓ 单样本测试通过")
-    
-    print(f"\n" + "=" * 60)
-    print("所有测试完成!")
-    print("=" * 60)
-
-
-if __name__ == "__main__":
-    try:
-        test_cause_multi_head_attention()
-        print("\n✓ 所有测试通过!")
-    except Exception as e:
-        print(f"\n✗ 测试失败: {str(e)}")
-        import traceback
-        traceback.print_exc()

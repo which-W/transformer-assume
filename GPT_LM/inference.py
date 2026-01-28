@@ -76,7 +76,8 @@ class TextGenerator:
         
         # 用于重复惩罚的token计数
         token_counts = {}
-        
+        # 清空KV Cache，准备新的生成序列
+        self.model.clear_cache()
         # 生成循环
         for _ in range(max_new_tokens):
             # 如果序列太长，截断到max_seq_len
@@ -85,7 +86,9 @@ class TextGenerator:
                 input_ids = input_ids[:, -max_seq_len:]
             
             # 前向传播
-            logits = self.model(input_ids)  # [1, seq_len, vocab_size]
+            # Prefill阶段 - 处理整个prompt
+            # 使用KV Cache，一次性处理所有prompt tokens
+            logits = self.model(input_ids, use_cache=True)  # 启用Cache ,[1, seq_len, vocab_size]
             
             # 只取最后一个位置的logits
             next_token_logits = logits[:, -1, :]  # [1, vocab_size]
@@ -126,6 +129,9 @@ class TextGenerator:
             
             # 拼接到序列
             input_ids = torch.cat([input_ids, next_token], dim=1)
+            #Generation阶段 - 只处理新token
+            # 使用KV Cache，只需要传入新生成的token
+            logits = self.model(next_token, use_cache=True)
             
             # 检查是否生成了结束符（如果有的话）
             # 这里可以根据实际情况添加EOS token的检查
@@ -135,7 +141,7 @@ class TextGenerator:
         generated_text = self.tokenizer.decode(generated_ids)
         
         return generated_text
-    
+    @torch.no_grad()
     def interactive_mode(self):
         """交互式生成模式"""
         print("进入交互模式 (输入 'quit' 退出)")

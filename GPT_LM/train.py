@@ -131,6 +131,7 @@ def train(args):
         use_rms_norm=use_rms_norm,
         norm_model=args.norm_rope,
         ffn_type=args.ffn_type,
+        
     ).to(args.device)
     
     # 设置学习器

@@ -92,8 +92,11 @@ class MoETransformerLM(nn.Module):
         
         # 存储总辅助损失
         self.total_aux_loss = None
+        
+        # 位置计数器
+        self._current_pos = 0
     
-    def forward(self, token_ids: torch.Tensor) -> torch.Tensor:
+    def forward(self, token_ids: torch.Tensor, use_cache: bool = False,) -> torch.Tensor:
         """
         前向传播
         
@@ -106,11 +109,18 @@ class MoETransformerLM(nn.Module):
         b, s = token_ids.shape
         
         # 生成位置编码
-        token_position = torch.arange(
-            s, 
-            device=self.device, 
-            dtype=torch.long
-        ).unsqueeze(0).expand(b, s)
+        if use_cache:
+            start_pos = self._current_pos
+            token_position = torch.arange(
+                start_pos, start_pos + s,
+                device=self.device, dtype=torch.long
+            ).unsqueeze(0).expand(b, s)
+            self._current_pos += s
+        else:
+            start_pos = 0
+            token_position = torch.arange(
+                s, device=self.device, dtype=torch.long
+            ).unsqueeze(0).expand(b, s)
         
         # Embedding
         x = self.embedding(token_ids)

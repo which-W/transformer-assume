@@ -89,7 +89,9 @@ class MoETransformerBlock(nn.Module):
     def forward(
         self, 
         x: torch.Tensor, 
-        x_position: torch.Tensor
+        x_position: torch.Tensor,
+        use_cache: bool = False,
+        start_pos: int = 0
     ) -> torch.Tensor:
         """
         前向传播
@@ -103,7 +105,7 @@ class MoETransformerBlock(nn.Module):
         """
         # 1. Attention子层 (pre-norm结构)
         # 残差连接 + LayerNorm + Attention
-        x = x + self.attention(self.ln1(x), token_position=x_position)
+        x = x + self.attention(self.ln1(x), token_position=x_position,use_cache=use_cache,start_pos=start_pos)
         
         # 2. MoE FFN子层
         # 残差连接 + LayerNorm + MoE
@@ -120,7 +122,13 @@ class MoETransformerBlock(nn.Module):
             aux_loss: 标量张量
         """
         return self.moe.get_aux_loss()
-
+    def clear_cache(self):
+        """清空该层的 KV Cache"""
+        self.attention.clear_cache()
+    
+    def get_cache_seq_len(self) -> int:
+        """获取缓存序列长度"""
+        return self.attention.get_cache_seq_len()
 
 class HybridTransformerBlock(nn.Module):
     """
@@ -185,9 +193,10 @@ class HybridTransformerBlock(nn.Module):
             from swiGLU import SwiGLU
             self.ffn = SwiGLU(d_model, d_ff, device=device, dtype=dtype)
     
-    def forward(self, x: torch.Tensor, x_position: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, x_position: torch.Tensor ,use_cache: bool = False,
+        start_pos: int = 0) -> torch.Tensor:
         # Attention子层
-        x = x + self.attention(self.ln1(x), token_position=x_position)
+        x = x + self.attention(self.ln1(x), token_position=x_position, use_cache=use_cache,start_pos=start_pos)
         
         # FFN子层
         x = x + self.ffn(self.ln2(x))
@@ -199,3 +208,11 @@ class HybridTransformerBlock(nn.Module):
         if self.use_moe and hasattr(self.ffn, 'get_aux_loss'):
             return self.ffn.get_aux_loss()
         return torch.tensor(0.0)
+
+    def clear_cache(self):
+        """清空该层的 KV Cache"""
+        self.attention.clear_cache()
+    
+    def get_cache_seq_len(self) -> int:
+        """获取缓存序列长度"""
+        return self.attention.get_cache_seq_len()
