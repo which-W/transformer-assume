@@ -55,7 +55,7 @@ class TextGenerator:
         print("✓ KV Cache 已启用")
     
     @torch.no_grad()
-    def generate(self, prompt, max_new_tokens=10000, temperature=1.0, 
+    def generate(self, prompt, max_new_tokens=250, temperature=1.0, 
                  top_k=None, top_p=0.9, repetition_penalty=1.0):
         """
         生成文本 - 修复版
@@ -84,14 +84,14 @@ class TextGenerator:
         # 用于重复惩罚的token计数
         token_counts = {}
         
-        # 关键修复1: 清空缓存
+        # 清空缓存
         self.model.clear_cache()
         
-        # 关键修复2: Prefill阶段 - 只处理一次prompt
+        # Prefill阶段 - 只处理一次prompt
         logits = self.model(input_ids, use_cache=True)
         next_token_logits = logits[:, -1, :]
         
-        # 关键修复3: Generation循环 - 每次只处理新token
+        # Generation循环 - 每次只处理新token
         for i in range(max_new_tokens):
             # 应用重复惩罚
             if repetition_penalty != 1.0:
