@@ -5,6 +5,7 @@ from softmax import StableSoftmax
 from torch import nn
 from einops import rearrange
 from rope import RotaryPositionalEmbedding
+
 #计算打分表Q*K 并对V进行加权输出
 def scaled_dot_product_attention(
     Q:torch.Tensor,

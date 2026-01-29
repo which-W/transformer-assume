@@ -1,51 +1,86 @@
-# Transformer学习之旅：从零开始实现Transformer模型
+# Transformer 深度学习项目
 
-[![Python](https://img.shields.io/badge/Python-2.1+-blue.svg)](https://python.org)
-[![PyTorch](https://img.shields.io/badge/PyTorch-3.8+-orange.svg)](https://pytorch.org)
-[![Jupyter](https://img.shields.io/badge/Jupyter-Notebook-yellow.svg)](https://jupyter.org)
+> ⚠️ **重要声明：本项目仅用于学习目的，请勿用于任何商业用途！**
 
-> 一份循序渐进的Transformer学习实践项目，通过代码实现深入理解Transformer架构的核心原理
+[![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://python.org)
+[![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-orange.svg)](https://pytorch.org)
+[![License](https://img.shields.io/badge/License-教育学习用途-red.svg)](LICENSE)
 
-## 📖 项目简介
+## 📚 项目简介
 
-这是一个记录Transformer模型学习全过程的实战项目。项目采用"理论与实践相结合"的方式，通过逐步实现Transformer的各个组件，帮助开发者深入理解Attention机制、编码器-解码器架构等核心概念。
+这是一个个人深度学习学习项目，专注于从零开始实现 Transformer 架构及其变体。**项目完全出于学习和研究目的开发，不具备商业应用价值，严禁用于任何商业场景。**
 
 ### 🎯 学习目标
 
-- 理解Transformer的基本架构和工作原理
+- 深入理解 Transformer 架构的核心原理
 - 掌握多头注意力机制的实现细节
-- 学会处理序列到序列（Seq2Seq）任务
-- 实现完整的机器翻译模型
-- 熟悉PyTorch中深度学习模型的开发流程
+- 学习从底层构建深度学习模型
+- 探索 Mixture of Experts (MoE) 等前沿技术
+- 实践 PyTorch 深度学习框架的使用
 
-## 🏗️ 项目架构
+### ⚠️ 使用限制
+
+1. **仅限学习研究**：本项目仅用于个人学习和教育目的
+2. **禁止商业使用**：严禁用于任何商业产品或服务
+3. **不保证性能**：模型性能未经过严格验证
+4. **无技术支持**：不提供任何形式的技术支持
+
+## 🏗️ 项目结构
 
 ```
 transformer-assume/
-├── 📁 py_files/                    # 核心Python实现
-│   ├── transformer.py            # 主Transformer模型
-│   ├── encoder.py               # 编码器实现
-│   ├── decoder.py               # 解码器实现
-│   ├── multihead_attn.py        # 多头注意力机制
-│   ├── encoder_block.py         # 编码器块
-│   ├── decoder_block.py         # 解码器块
-│   ├── emb.py                   # 词嵌入和位置编码
-│   ├── dataset.py               # 数据处理
-│   ├── train.py                 # 训练脚本
-│   ├── evaluation.py            # 评估脚本
-│   └── config.py                # 配置文件
-├── 📁 notebook_files/             # Jupyter教学笔记
-│   ├── embeding.ipynb           # 嵌入层详解
-│   ├── multihead_atten.ipynb    # 多头注意力演示
-│   ├── Encoder.ipynb            # 编码器实现
-│   ├── Decoder.ipynb            # 解码器实现
-│   ├── transformer.ipynb        # 完整模型演示
-│   ├── train.ipynb              # 训练过程
-│   └── evaluation.ipynb         # 模型评估
-├── 📁 checkpoints/               # 模型检查点
-├── 📁 multi30k/                  # 数据集
-└── 📄 README.md                  # 项目文档
+├── 📁 GPT_LM/                      # GPT风格语言模型实现
+│   ├── transformer.py             # 核心Transformer模型
+│   ├── moe_transformer.py         # MoE变体实现
+│   ├── transformer_block.py       # Transformer块
+│   ├── moe_transformer_block.py   # MoE Transformer块
+│   ├── attention.py               # 注意力机制
+│   ├── train.py                   # 训练脚本
+│   ├── inference.py               # 推理脚本
+│   ├── tokenizer.py               # 分词器
+│   ├── dataset_process.py         # 数据处理
+│   └── ... (其他组件)
+├── 📁 ed-transformer_py/           # 编码器-解码器Transformer
+│   ├── transformer.py             # 完整Transformer模型
+│   ├── encoder.py                 # 编码器
+│   ├── decoder.py                 # 解码器
+│   ├── multihead_attn.py          # 多头注意力
+│   ├── dataset.py                 # 数据处理
+│   ├── train.py                   # 训练脚本
+│   └── evaluation.py              # 评估脚本
+├── 📁 notebooks/                   # Jupyter学习笔记
+├── 📁 checkpoints/                 # 模型检查点
+└── 📄 README.md                   # 项目说明
 ```
+
+## 🔧 核心实现
+
+### 1. 标准 Transformer (ed-transformer_py/)
+
+基于经典论文 "Attention Is All You Need" 的完整实现：
+
+- **编码器-解码器架构**：适用于序列到序列任务
+- **多头注意力机制**：并行学习不同表示子空间
+- **位置编码**：使用正弦/余弦函数编码位置信息
+- **残差连接 & 层归一化**：稳定深度网络训练
+
+### 2. GPT风格语言模型 (GPT_LM/)
+
+自回归语言模型实现：
+
+- **仅解码器架构**：适用于文本生成任务
+- **KV Cache优化**：加速推理过程
+- **RoPE位置编码**：相对位置编码方案
+- **RMSNorm归一化**：替代传统LayerNorm
+
+### 3. MoE变体 (GPT_LM/moe_*.py)
+
+Mixture of Experts 稀疏激活模型：
+
+- **Top-K路由机制**：动态选择专家网络
+- **负载均衡损失**：防止专家使用不均
+- **混合架构**：灵活配置MoE层分布
+- **辅助损失聚合**：优化训练稳定性
 
 ## 🚀 快速开始
 
@@ -53,164 +88,124 @@ transformer-assume/
 
 ```bash
 Python >= 3.8
-PyTorch >= 2.1
+PyTorch >= 2.0
+numpy
+matplotlib (可选)
+jupyter (可选)
 ```
 
-### 安装依赖
+### 基础使用示例
 
-#### 方法一：使用requirements.txt（推荐）
+#### 1. 训练标准GPT模型
 
 ```bash
-# 安装所有依赖
-pip install -r requirements.txt
+cd GPT_LM
+python train.py \
+    --train_data_path data/train.bin \
+    --valid_data_path data/val.bin \
+    --d_model 512 \
+    --n_head 8 \
+    --n_layer 6 \
+    --batch_size 8
 ```
 
-#### 方法二：手动安装
+#### 2. 使用MoE模型
+
+```python
+from moe_transformer import MoETransformerLM
+import torch
+
+# 创建MoE模型
+model = MoETransformerLM(
+    d_model=512,
+    n_head=8,
+    vocab_size=30000,
+    max_seq_len=1024,
+    n_layer=12,
+    n_experts=8,      # 每层8个专家
+    top_k=2,          # 激活2个专家
+)
+
+# 前向传播
+tokens = torch.randint(0, 30000, (4, 128))
+logits = model(tokens)
+```
+
+#### 3. 机器翻译训练
 
 ```bash
-# 安装PyTorch (根据CUDA版本选择)
-pip install torch torchvision torchaudio
-
-# 安装其他依赖
-pip install numpy matplotlib jupyter
+cd ed-transformer_py
+python train.py
 ```
 
-### 数据准备
-
-项目使用Multi30k数据集进行德语到英语的机器翻译任务：
-
-```bash
-# 数据已包含在multi30k/目录中
-# 包含德语和英语的平行语料
-```
-
-## 📚 学习路径
-
-### 1. 理论基础 (Notebooks)
-
-建议按以下顺序学习Jupyter notebooks：
-
-1. **`embeding.ipynb`** - 词嵌入和位置编码
-2. **`multihead_atten.ipynb`** - 多头注意力机制
-3. **`Encoder.ipynb`** - 编码器实现
-4. **`Decoder.ipynb`** - 解码器实现
-5. **`transformer.ipynb`** - 完整模型
-
-### 2. 实践代码 (Python脚本)
-
-```bash
-# 训练模型
-python py_files/train.py
-
-# 评估模型
-python py_files/evaluation.py
-```
-
-## 🔧 核心组件
+## 📊 技术特点
 
 ### 模型架构
 
-```python
-Transformer模型包含：
-├── 编码器 (Encoder)
-│   ├── 多层编码器块
-│   │   ├── 多头自注意力
-│   │   └── 前馈神经网络
-└── 解码器 (Decoder)
-    ├── 多层解码器块
-    │   ├── 多头交叉注意力
-    │   ├── 多头自注意力
-    │   └── 前馈神经网络
+| 组件 | 实现特点 | 学习价值 |
+|------|----------|----------|
+| **注意力机制** | 多头自注意力、交叉注意力 | 理解注意力核心原理 |
+| **位置编码** | 绝对位置编码、RoPE相对编码 | 掌握位置信息处理 |
+| **归一化** | LayerNorm、RMSNorm | 理解归一化技术演进 |
+| **激活函数** | SwiGLU、SiLU | 学习现代激活函数 |
+| **优化器** | 自定义AdamW实现 | 深入理解优化算法 |
+
+### 实验功能
+
+- **消融实验**：可配置不同组件进行对比
+- **梯度裁剪**：防止梯度爆炸
+- **学习率调度**：预热+余弦退火
+- **混合精度训练**：节省显存提升速度
+- **检查点管理**：支持训练恢复
+
+## 🎓 学习路径
+
+### 初学者路径
+
+1. **理论基础**：阅读相关论文和技术博客
+2. **代码阅读**：从简单组件开始理解
+3. **实验调参**：尝试不同超参数组合
+4. **功能扩展**：基于现有代码添加新特性
+
+### 建议学习顺序
+
+```
+1. 注意力机制 (attention.py)
+2. 位置编码 (rope.py, emb.py)
+3. 归一化层 (layernorm.py, rmsnorm.py)
+4. Transformer块 (transformer_block.py)
+5. 完整模型 (transformer.py)
+6. MoE扩展 (moe_*.py)
+7. 训练流程 (train.py)
 ```
 
-### 关键参数
+## ⚠️ 免责声明
 
-| 参数 | 值 | 说明 |
-|------|----|-----|
-| 嵌入维度 | 512 | 词向量维度 |
-| 注意力头数 | 8 | 多头注意力中的头数 |
-| 编码器层数 | 6 | Transformer编码器层数 |
-| 解码器层数 | 6 | Transformer解码器层数 |
-| Dropout | 0.1 | 正则化率 |
-| 最大序列长度 | 5000 | 支持的最大序列长度 |
+1. **教育用途**：本项目仅用于个人学习和教育目的
+2. **代码质量**：代码未经生产环境验证，可能存在bug
+3. **性能保证**：不保证模型性能和训练效果
+4. **安全风险**：使用者需自行承担使用风险
+5. **知识产权**：本项目借鉴了开源社区的研究成果
 
-## 📊 性能指标
+## 🔗 参考资源
 
-### 训练配置
+### 核心论文
 
-- **优化器**: SGD (lr=1e-3, momentum=0.99)
-- **损失函数**: CrossEntropyLoss
-- **批次大小**: 250
-- **训练轮数**: 300
-- **数据集**: Multi30k (德语→英语)
+- [Attention Is All You Need](https://arxiv.org/abs/1706.03762) - Transformer原论文
+- [DeepSeek-V2: A Strong, Economical, and Efficient Mixture-of-Experts Language Model](https://arxiv.org/abs/2405.04434) - MoE实现参考
+- [Switch Transformers](https://arxiv.org/abs/2101.03961) - 稀疏专家模型
 
-### 模型性能
+### 学习资源
 
-- **词汇表大小**: 德语约 7800 词，英语约 5900 词
-- **模型大小**: 约 65M 参数
-- **训练时间**: 根据硬件配置约 2-4 小时
-
-## 🎓 学习要点
-
-### 1. 注意力机制
-
-- **自注意力**: 计算序列内部元素之间的关系
-- **交叉注意力**: 解码器关注编码器的输出
-- **多头注意力**: 并行学习不同类型的注意力模式
-
-### 2. 位置编码
-
-- 使用正弦和余弦函数生成位置信息
-- 确保模型能够理解词序关系
-- 公式: 
-  ```
-  PE(pos, 2i) = sin(pos / 10000^(2i/d_model))
-  PE(pos, 2i+1) = cos(pos / 10000^(2i/d_model))
-  ```
-
-### 3. 残差连接和层归一化
-
-- 解决深度网络中的梯度消失问题
-- 提高训练稳定性
-- 每个子层都有残差连接和层归一化
-
-## 🛠️ 开发说明
-
-### 代码组织
-
-- **模块化设计**: 每个组件都有独立的文件
-- **清晰的接口**: 组件间通过明确的接口交互
-- **注释完善**: 关键算法步骤都有详细注释
-
-## 🤝 贡献指南
-
-欢迎贡献代码、报告问题或提出改进建议！
-
-### 开发流程
-
-1. Fork本项目
-2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 创建Pull Request
-
-### 代码规范
-
-- 遵循PEP 8 Python代码规范
-- 添加适当的注释和文档字符串
-- 确保代码通过基本测试
-
-## 🔗 相关资源
-
-### 参考资料
-
-- [Attention Is All You Need](https://arxiv.org/abs/1706.03762) - 原始论文
-- [The Annotated Transformer](http://nlp.seas.harvard.edu/2018/04/03/attention.html) - 详细解析
+- [The Annotated Transformer](http://nlp.seas.harvard.edu/2018/04/03/attention.html)
 - [PyTorch官方文档](https://pytorch.org/docs/stable/index.html)
-## 🙏 致谢
 
-感谢所有为开源AI社区做出贡献的开发者，以及为深度学习教育提供资源的机构。
+## 📄 许可证
+
+**本项目仅限学习和研究使用，禁止任何形式的商业应用。**
 
 ---
 
-**⭐ 如果这个项目对你有帮助，请给个Star支持一下！**
+**⚠️ 再次提醒：这是一个学习项目，不具备商业使用价值！**
+
+如果这个项目对你的学习有帮助，欢迎点个⭐支持一下！
