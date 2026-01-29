@@ -1,5 +1,4 @@
 import torch
-import numpy as np
 from tokenizers import Tokenizer
 from transformer import TransformerLM
 import argparse

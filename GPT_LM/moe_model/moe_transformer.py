@@ -38,6 +38,9 @@ class MoETransformerLM(nn.Module):
         device: Optional[torch.device] = None,
         dtype: Optional[torch.dtype] = None,
         use_rms_norm: bool = True,
+         # 多GPU参数
+        device_ids: List[int] = None,
+        main_device: int = 0,
     ):
         """
         Args:
@@ -59,36 +62,40 @@ class MoETransformerLM(nn.Module):
         self.n_layer = n_layer
         self.use_moe_aux_loss = use_moe_aux_loss
         
-        factory_kwargs = {"device": device, "dtype": dtype}
-        
         # Embedding层
-        self.embedding = CustomEmbedding(vocab_size, d_model, **factory_kwargs)
+        self.embedding = CustomEmbedding(
+            vocab_size, d_model, device=self.main_device,dtype=dtype
+        )
         
         # 堆叠MoE Transformer blocks
-        self.layers = nn.ModuleList([
-            MoETransformerBlock(
+        self.layers = nn.ModuleList()
+        for _ in range(n_layer):
+            # 创建一个特殊的Block，使用多GPU MoE
+            block = MoETransformerBlock(
                 d_model=d_model,
                 d_ff=d_ff,
                 n_head=n_head,
                 max_seq_len=max_seq_len,
-                theta=theta,
+                theta=10000.0,
                 n_experts=n_experts,
                 top_k=top_k,
-                use_moe_aux_loss=use_moe_aux_loss,
-                moe_aux_loss_weight=moe_aux_loss_weight,
-                **factory_kwargs,
+                device_ids=device_ids,
+                main_device=main_device,
             )
-            for _ in range(n_layer)
-        ])
+            self.layers.append(block)
+        
+        # 输出层 (主GPU)
+        self.ln_final = RMSNorm(d_model, device=self.main_device,dtype=dtype)
+       
         
         # 最终输出层
         if use_rms_norm:
-            self.ln_final = RMSNorm(d_model, **factory_kwargs)
+            self.ln_final = RMSNorm(d_model, device=self.main_device,dtype=dtype)
         else:
             self.ln_final = nn.Identity()
         
-        # 输出投影到词表
-        self.ln_output = nn.Linear(d_model, vocab_size, **factory_kwargs)
+        # 输出投影到词表(主GPU)
+        self.output = nn.Linear(d_model, vocab_size, device=self.main_device,dtype=dtype)
         
         # 存储总辅助损失
         self.total_aux_loss = None

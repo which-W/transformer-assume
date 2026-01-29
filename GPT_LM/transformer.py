@@ -105,3 +105,15 @@ class TransformerLM(nn.Module):
         for layer in self.layers:
             layer.clear_cache()
         self._current_pos = 0
+    def truncate_cache(self, length: int):
+        """
+        截断 KV Cache 到指定长度 (用于投机采样回退)
+        Args:
+            length: 保留的序列长度 (start_pos)
+        """
+        # 截断所有层的 cache
+        for layer in self.layers:
+            layer.truncate_cache(length)
+        
+        # 重置当前位置指针
+        self._current_pos = length

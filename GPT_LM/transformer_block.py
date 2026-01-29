@@ -46,6 +46,9 @@ class TransformerBlock(nn.Module):
         """清空该层的 KV Cache"""
         self.attention.clear_cache()
     
+    def truncate_cache(self, length: int):
+        """传递截断指令给 attention 层"""
+        self.attention.truncate_cache(length)
     def get_cache_seq_len(self) -> int:
         """获取缓存序列长度"""
         return self.attention.get_cache_seq_len()

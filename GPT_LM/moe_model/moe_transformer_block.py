@@ -2,12 +2,13 @@
 MoE Transformer Block
 将标准Transformer Block中的FFN替换为MoE层
 """
+from ast import List
 import torch
 from torch import nn
 from typing import Optional
 from attention import CauseMutiHeadAttention
 from rmsnorm import RMSNorm
-from moe_layer import MoELayer
+from moe_layer import ExpertParallelMoELayer
 
 
 class MoETransformerBlock(nn.Module):
@@ -33,14 +34,12 @@ class MoETransformerBlock(nn.Module):
         n_head: int,
         max_seq_len: int,
         theta: float,
-        # MoE特定参数
-        n_experts: int = 8,
-        top_k: int = 2,
-        use_moe_aux_loss: bool = True,
-        moe_aux_loss_weight: float = 0.01,
-        # 通用参数
-        device: Optional[torch.device] = None,
-        dtype: Optional[torch.dtype] = None
+        n_experts: int,
+        top_k: int,
+        device_ids: List[int],
+        strategy: str,
+        main_device: int,
+        dtype=None
     ):
         """
         Args:
@@ -56,29 +55,30 @@ class MoETransformerBlock(nn.Module):
         """
         super().__init__()
         
-        # 注意力模块(与标准Block相同)
+        main_dev = torch.device(f"cuda:{main_device}")
+        
+        # Attention在主GPU上
         self.attention = CauseMutiHeadAttention(
             d_model=d_model,
             n_head=n_head,
             max_seq_size=max_seq_len,
             theta=theta,
-            device=device,
-            dtype=dtype,
+            device=main_dev,
+            dtype=dtype
         )
         
         # 两个RMSNorm层
-        self.ln1 = RMSNorm(d_model=d_model, device=device, dtype=dtype)
-        self.ln2 = RMSNorm(d_model=d_model, device=device, dtype=dtype)
+        self.ln1 = RMSNorm(d_model=d_model, device=main_dev, dtype=dtype)
+        self.ln2 = RMSNorm(d_model=d_model, device=main_dev, dtype=dtype)
         
-        # MoE前馈网络(替代标准FFN)
-        self.moe = MoELayer(
+        # MoE在多GPU上
+        self.moe = ExpertParallelMoELayer(
             d_model=d_model,
             d_ff=d_ff,
             n_experts=n_experts,
             top_k=top_k,
-            use_aux_loss=use_moe_aux_loss,
-            aux_loss_weight=moe_aux_loss_weight,
-            device=device,
+            device_ids=device_ids,
+            main_device=main_device,
             dtype=dtype
         )
         

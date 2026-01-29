@@ -77,7 +77,16 @@ class KVCache:
             self.v_cache = torch.cat([self.v_cache, v], dim=2)
             
         return self.k_cache, self.v_cache
-    
+    def truncate(self, max_len: int):
+        """
+        截断缓存到指定长度 (用于投机采样回退)
+        Args:
+            max_len: 保留的序列长度
+        """
+        if self.k_cache is not None and self.k_cache.size(2) > max_len:
+            # 维度: [batch, n_head, seq_len, d_k] -> 在第2维截断
+            self.k_cache = self.k_cache[:, :, :max_len, :]
+            self.v_cache = self.v_cache[:, :, :max_len, :]
     def clear(self):
         """清空缓存"""
         self.k_cache = None
@@ -88,7 +97,6 @@ class KVCache:
         if self.k_cache is None:
             return 0
         return self.k_cache.size(2)
-
 
 class CauseMutiHeadAttention(nn.Module):
     def __init__ (self , 
@@ -192,3 +200,6 @@ class CauseMutiHeadAttention(nn.Module):
         """获取当前缓存的序列长度"""
         return self.k_v_cache.get_seq_len()
 
+    def truncate_cache(self, length: int):
+        """截断 KV Cache"""
+        self.k_v_cache.truncate(length)
