@@ -97,12 +97,6 @@ class MoETransformerLM(nn.Module):
         # 输出投影到词表(主GPU)
         self.output = nn.Linear(d_model, vocab_size, device=self.main_device,dtype=dtype)
         
-        # 存储总辅助损失
-        self.total_aux_loss = None
-        
-        # 位置计数器
-        self._current_pos = 0
-    
     def forward(self, token_ids: torch.Tensor, use_cache: bool = False,) -> torch.Tensor:
         """
         前向传播
